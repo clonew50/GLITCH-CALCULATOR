@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLITCH CALCULATOR</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --pink: #ff0055;
+            --cyan: #00ffff;
+            --green: #39ff14;
+            --yellow: #ffcc00;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', 'VT323', 'Press Start 2P', monospace;
+            overflow: hidden;
+            transition: background 0.15s;
+            position: relative;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.15) 2px,
+                    rgba(0,0,0,0.15) 4px);
+            pointer-events: none;
+            z-index: 9998;
+        }
+        .glitch-box {
+            background: #111;
+            border: 6px solid #333;
+            padding: 35px 30px 30px;
+            width: 460px;
+            max-width: 92vw;
+            box-shadow:
+                8px 8px 0 #000,
+                0 0 40px rgba(255,0,85,0.35),
+                0 0 80px rgba(0,255,255,0.25),
+                inset 0 0 55px rgba(0,0,0,0.8);
+            text-align: center;
+            transition: transform 0.1s ease;
+            position: relative;
+            z-index: 20;
+            clip-path: polygon(0% 0%, 100% 0%, 98% 3%, 100% 5%, 97% 7%, 100% 100%, 0% 100%, 3% 97%, 0% 95%, 2% 93%);
+        }
+        .shake {
+            animation: brutalShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+        }
+        @keyframes brutalShake {
+            0%,100%{ transform: translate(0,0) rotate(0deg); }
+            10%{ transform: translate(-12px, 5px) rotate(-3deg); }
+            20%{ transform: translate(10px, -7px) rotate(3.5deg); }
+            30%{ transform: translate(-14px, -2px) rotate(-4deg); }
+            40%{ transform: translate(7px, 9px) rotate(2deg); }
+            50%{ transform: translate(-8px, -8px) rotate(-2.5deg); }
+            60%{ transform: translate(13px, 4px) rotate(4deg); }
+            70%{ transform: translate(-5px, 11px) rotate(-1.5deg); }
+            80%{ transform: translate(4px, -10px) rotate(1deg); }
+            90%{ transform: translate(-11px, -5px) rotate(-3.5deg); }
+        }
+        .brand {
+            font-size: 11px;
+            letter-spacing: 5px;
+            color: #555;
+            margin-bottom: 22px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(255,0,85,0.6);
+        }
+        .brand span {
+            color: var(--pink);
+            animation: flicker 1.8s infinite;
+        }
+        @keyframes flicker {
+            0%,100%{opacity:1;}
+            47%{opacity:0.5;}
+            49%{opacity:0.1;}
+            51%{opacity:0.7;}
+            53%{opacity:1;}
+        }
+        .screen {
+            background: #0c1a0c;
+            border: 3px solid #1f3a1f;
+            padding: 12px;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 25px rgba(0,255,0,0.15);
+            display: flex;
+            align-items: center;
+        }
+        #equationInput {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 26px;
+            background: transparent;
+            border: none;
+            color: #39ff14;
+            text-align: right;
+            letter-spacing: 3px;
+            font-family: 'VT323', 'Courier New', monospace;
+            caret-color: #39ff14;
+            outline: none;
+            text-shadow: 0 0 12px #39ff14;
+        }
+        #equationInput::placeholder {
+            color: #1a5a1a;
+            letter-spacing: 2px;
+            font-size: 20px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 28px;
+            background: #39ff14;
+            animation: blink 1s step-end infinite;
+            margin-left: 3px;
+            box-shadow: 0 0 10px #39ff14;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .btn-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 15px 32px;
+            font-size: 17px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border: 3px solid;
+            text-transform: uppercase;
+            transition: 0.08s;
+            clip-path: polygon(5% 0%, 95% 0%, 100% 10%, 100% 90%, 95% 100%, 5% 100%, 0% 90%, 0% 10%);
+            background: #1a000a;
+            color: var(--pink);
+            border-color: var(--pink);
+            box-shadow: 0 0 22px rgba(255,0,85,0.5), 0 5px 0 #5a0020;
+            text-shadow: 0 0 12px var(--pink);
+        }
+        .btn:hover {
+            background: #2d0015;
+            box-shadow: 0 0 38px rgba(255,0,85,0.8), 0 5px 0 #5a0020;
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 15px rgba(255,0,85,0.4), 0 0px 0 #5a0020;
+        }
+        .btn-clear {
+            background: #000a18;
+            color: var(--cyan);
+            border-color: var(--cyan);
+            box-shadow: 0 0 22px rgba(0,255,255,0.5), 0 5px 0 #003d4d;
+            text-shadow: 0 0 12px var(--cyan);
+        }
+        .btn-clear:hover {
+            background: #001a2e;
+            box-shadow: 0 0 38px rgba(0,255,255,0.8), 0 5px 0 #003d4d;
+        }
+        .glitch-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(50px, 12vw, 110px);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #ff0055;
+            pointer-events: none;
+            z-index: 10001;
+            letter-spacing: 12px;
+            text-shadow:
+                4px 0 #00ffff,
+                -4px 0 #ff0000,
+                0 0 50px #ff0055;
+            opacity: 0;
+            transition: opacity 0.1s ease;
+            user-select: none;
+            animation: none;
+        }
+        .glitch-message.active {
+            opacity: 1;
+            animation: glitchText 0.25s infinite;
+        }
+        @keyframes glitchText {
+            0% { transform: translate(-50%, -50%) skew(0deg); text-shadow: 4px 0 cyan, -4px 0 red; }
+            20% { transform: translate(-47%, -52%) skew(3deg); text-shadow: -6px 0 cyan, 6px 0 red; }
+            40% { transform: translate(-53%, -48%) skew(-2deg); text-shadow: 2px -3px cyan, -2px 3px red; }
+            60% { transform: translate(-49%, -51%) skew(-4deg); text-shadow: -5px 2px cyan, 5px -2px red; }
+            80% { transform: translate(-51%, -49%) skew(2deg); text-shadow: 3px 1px cyan, -3px -1px red; }
+            100% { transform: translate(-50%, -50%) skew(0deg); text-shadow: 4px 0 cyan, -4px 0 red; }
+        }
+        .pixel {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10002;
+            font-family: 'Courier New', monospace;
+            color: #ff0055;
+            font-size: 18px;
+            animation: fall linear forwards;
+            text-shadow: 0 0 12px #ff0055;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(600deg); opacity: 0; }
+        }
+        .bg-flash {
+            animation: bgFlash 0.3s ease-out;
+        }
+        @keyframes bgFlash {
+            0% { background: #2a000a; }
+            100% { background: var(--bg); }
+        }
+        #glitchCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10000;
+        }
+        .input-error {
+            animation: inputShake 0.3s ease;
+        }
+        @keyframes inputShake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glitchCanvas"></canvas>
+    <div class="glitch-message" id="glitchMessage">FUCK YOU</div>
+
+    <div class="glitch-box" id="calcBox">
+        <div class="brand">G̷L̷I̷T̷C̷H̷ <span>//</span> C̶A̶L̶C̶</div>
+        <div class="screen">
+            <input type="text" id="equationInput" placeholder="2+2=?" autocomplete="off" spellcheck="false">
+            <span class="cursor"></span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="calculate()">▶ SOLVE</button>
+            <button class="btn btn-clear" onclick="clearAll()">⌫ CLEAR</button>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('equationInput');
+        const calcBox = document.getElementById('calcBox');
+        const glitchMsg = document.getElementById('glitchMessage');
+        const canvas = document.getElementById('glitchCanvas');
+        const ctx = canvas.getContext('2d');
+        const body = document.body;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        inputEl.focus();
+
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (inputEl.value.trim() === '') {
+                    shakeInput();
+                } else {
+                    calculate();
+                }
+            }
+            if (e.key === 'Escape') clearAll();
+        });
+
+        function calculate() {
+            const inputValue = inputEl.value.trim();
+            
+            // Only trigger if there's actually something written
+            if (inputValue === '') {
+                shakeInput();
+                return;
+            }
+            
+            triggerGlitch();
+        }
+
+        function shakeInput() {
+            inputEl.classList.add('input-error');
+            inputEl.placeholder = 'TYPE SOMETHING FIRST!';
+            setTimeout(() => {
+                inputEl.classList.remove('input-error');
+                inputEl.placeholder = '2+2=?';
+            }, 300);
+        }
+
+        function triggerGlitch() {
+            if (glitchMsg.classList.contains('active')) {
+                resetAndFire();
+                return;
+            }
+            resetAndFire();
+        }
+
+        function resetAndFire() {
+            glitchMsg.classList.remove('active');
+            void glitchMsg.offsetWidth;
+            
+            calcBox.classList.remove('shake');
+            void calcBox.offsetWidth;
+            calcBox.classList.add('shake');
+
+            body.classList.add('bg-flash');
+            setTimeout(() => body.classList.remove('bg-flash'), 300);
+
+            glitchMsg.classList.add('active');
+            spawnPixels(35);
+            drawGlitchSlices();
+
+            // Store the current input value before clearing
+            const currentInput = inputEl.value;
+            
+            setTimeout(() => {
+                glitchMsg.classList.remove('active');
+                inputEl.value = '';
+                inputEl.focus();
+                calcBox.classList.remove('shake');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 2800);
+        }
+
+        function clearAll() {
+            glitchMsg.classList.remove('active');
+            calcBox.classList.remove('shake');
+            body.classList.remove('bg-flash');
+            inputEl.classList.remove('input-error');
+            inputEl.value = '';
+            inputEl.placeholder = '2+2=?';
+            inputEl.focus();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.querySelectorAll('.pixel').forEach(p => p.remove());
+        }
+
+        function spawnPixels(count) {
+            document.querySelectorAll('.pixel').forEach(p => p.remove());
+            const chars = ['█','▓','▒','░','■','□','▪','▫','◆','◇','○','●','×','+','=','/','\\','|','-','!','@','#','$','%','&'];
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('span');
+                    particle.className = 'pixel';
+                    particle.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = -(Math.random() * 15) + 'px';
+                    particle.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                    particle.style.fontSize = (Math.random() * 18 + 10) + 'px';
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 4000);
+                }, i * 15);
+            }
+        }
+
+        function drawGlitchSlices() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const sliceCount = 8;
+            for (let i = 0; i < sliceCount; i++) {
+                const y = Math.random() * canvas.height;
+                const height = Math.random() * 30 + 10;
+                const shiftX = (Math.random() - 0.5) * 120;
+                ctx.fillStyle = `rgba(${Math.random()>0.5?255:0}, ${Math.random()>0.5?0:255}, ${Math.random()>0.5?255:0}, 0.7)`;
+                ctx.fillRect(shiftX, y, canvas.width, height);
+                ctx.fillStyle = '#ff0055';
+                ctx.font = `${Math.random()*20+12}px "Courier New"`;
+                ctx.fillText('FUCK YOU', shiftX + Math.random()*200, y + height/1.5);
+            }
+            setTimeout(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 600);
+        }
+
+        setInterval(() => {
+            if (glitchMsg.classList.contains('active')) {
+                drawGlitchSlices();
+            }
+        }, 400);
+    </script>
+</body>
+</html>
