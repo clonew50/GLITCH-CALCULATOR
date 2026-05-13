@@ -1,1 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLITCH CALCULATOR v2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --pink: #ff0055;
+            --cyan: #00ffff;
+            --green: #39ff14;
+            --yellow: #ffcc00;
+            --purple: #bf00ff;
+            --orange: #ff6600;
+            --red: #ff0033;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Share Tech Mono', 'VT323', monospace;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.07;
+        }
+
+        #glitchCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 1px,
+                rgba(0,0,0,0.08) 1px,
+                rgba(0,0,0,0.08) 2px
+            );
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 9997;
+        }
+
+        #bootOverlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'VT323', monospace;
+            color: var(--green);
+            font-size: 16px;
+            transition: opacity 0.5s;
+        }
+        #bootOverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #bootText {
+            text-align: left;
+            white-space: pre;
+            line-height: 1.6;
+            max-width: 600px;
+            width: 90%;
+        }
+        #bootText .ok { color: var(--green); }
+        #bootText .err { color: var(--pink); }
+        #bootText .warn { color: var(--yellow); }
+
+        .bg-flash {
+            animation: bgFlash 0.15s ease-out;
+        }
+        @keyframes bgFlash {
+            0% { background: #1a000a; }
+            50% { background: #0a001a; }
+            100% { background: var(--bg); }
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            max-width: 520px;
+            width: 95vw;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 6px 12px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-bottom: none;
+            font-size: 10px;
+            color: #555;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 1px;
+        }
+        .status-bar .sys-info {
+            display: flex;
+            gap: 15px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .status-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .status-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulse 1s infinite; }
+        .status-dot.cyan { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .glitch-box {
+            background: #0d0d0d;
+            border: 2px solid #333;
+            padding: 0;
+            width: 100%;
+            box-shadow:
+                0 0 40px rgba(255,0,85,0.15),
+                0 0 80px rgba(0,255,255,0.1),
+                inset 0 0 60px rgba(0,0,0,0.9);
+            position: relative;
+            clip-path: polygon(
+                0% 0%, 100% 0%, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 0% 100%
+            );
+            transition: transform 0.08s ease, box-shadow 0.3s;
+        }
+        .glitch-box:hover {
+            box-shadow:
+                0 0 50px rgba(255,0,85,0.25),
+                0 0 100px rgba(0,255,255,0.15),
+                inset 0 0 60px rgba(0,0,0,0.9);
+        }
+
+        .brand {
+            padding: 18px 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .brand-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #444;
+            text-transform: uppercase;
+            position: relative;
+        }
+        .brand-title span {
+            color: var(--pink);
+            animation: flicker 2s infinite;
+        }
+        .brand-title::before {
+            content: 'GLITCH // CALC';
+            position: absolute;
+            top: 0;
+            left: 2px;
+            color: var(--cyan);
+            opacity: 0;
+            animation: glitchOffset 4s infinite;
+            clip-path: inset(0 0 60% 0);
+        }
+        @keyframes glitchOffset {
+            0%, 92%, 100% { opacity: 0; transform: translate(0); }
+            93% { opacity: 0.7; transform: translate(-3px, -1px); }
+            94% { opacity: 0; transform: translate(0); }
+            95% { opacity: 0.5; transform: translate(2px, 1px); }
+            96% { opacity: 0; }
+        }
+        @keyframes flicker {
+            0%,100% { opacity: 1; }
+            47% { opacity: 0.8; }
+            48% { opacity: 0.2; }
+            50% { opacity: 0.9; }
+            51% { opacity: 0.3; }
+            53% { opacity: 1; }
+        }
+        .version-tag {
+            font-size: 9px;
+            color: #333;
+            letter-spacing: 2px;
+            border: 1px solid #333;
+            padding: 2px 6px;
+        }
+
+        .screen-container {
+            padding: 16px 20px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .screen {
+            background: #060e06;
+            border: 2px solid #1a3a1a;
+            padding: 16px 18px;
+            box-shadow:
+                inset 0 0 30px rgba(0,255,0,0.08),
+                inset 0 0 60px rgba(0,255,0,0.03);
+            position: relative;
+            overflow: hidden;
+        }
+        .screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,0,0.3), transparent);
+            animation: scanMove 3s linear infinite;
+        }
+        @keyframes scanMove {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        .screen-expression {
+            font-size: 14px;
+            color: #1a5a1a;
+            text-align: right;
+            font-family: 'VT323', monospace;
+            min-height: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        #equationInput {
+            width: 100%;
+            padding: 4px 0;
+            font-size: 32px;
+            background: transparent;
+            border: none;
+            color: var(--green);
+            text-align: right;
+            letter-spacing: 2px;
+            font-family: 'VT323', monospace;
+            caret-color: var(--green);
+            outline: none;
+            text-shadow: 0 0 15px rgba(57,255,20,0.5);
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #equationInput::placeholder {
+            color: #1a3a1a;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 32px;
+            background: var(--green);
+            animation: blink 0.8s step-end infinite;
+            margin-left: 2px;
+            box-shadow: 0 0 8px var(--green);
+            vertical-align: middle;
+            position: absolute;
+            right: 18px;
+            bottom: 16px;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .result-display {
+            padding: 8px 20px 12px;
+            text-align: right;
+            min-height: 36px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+        }
+        #resultText {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--cyan);
+            text-shadow: 0 0 12px rgba(0,255,255,0.4);
+            letter-spacing: 2px;
+            transition: all 0.15s;
+        }
+        #resultText.error {
+            color: var(--pink);
+            text-shadow: 0 0 12px rgba(255,0,85,0.4);
+            animation: errorFlicker 0.5s;
+        }
+        @keyframes errorFlicker {
+            0%,100% { opacity: 1; }
+            25% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+            75% { opacity: 0.3; }
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            padding: 12px 20px 20px;
+        }
+        .calc-btn {
+            padding: 14px 8px;
+            font-size: 15px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border: 1px solid;
+            text-transform: uppercase;
+            transition: all 0.08s;
+            background: #111;
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(0% 0%, calc(100% - 6px) 0%, 100% 6px, 100% 100%, 6px 100%, 0% calc(100% - 6px));
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        .calc-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: left 0.3s;
+        }
+        .calc-btn:hover::before {
+            left: 100%;
+        }
+        .calc-btn:active {
+            transform: scale(0.95);
+        }
+
+        .calc-btn.num {
+            color: #ccc;
+            border-color: #333;
+            background: #0a0a0a;
+        }
+        .calc-btn.num:hover {
+            color: #fff;
+            border-color: #555;
+            background: #1a1a1a;
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        .calc-btn.op {
+            color: var(--cyan);
+            border-color: rgba(0,255,255,0.3);
+            background: rgba(0,255,255,0.03);
+            text-shadow: 0 0 8px rgba(0,255,255,0.3);
+        }
+        .calc-btn.op:hover {
+            background: rgba(0,255,255,0.1);
+            border-color: rgba(0,255,255,0.6);
+            box-shadow: 0 0 20px rgba(0,255,255,0.15);
+        }
+
+        .calc-btn.special {
+            color: var(--yellow);
+            border-color: rgba(255,204,0,0.3);
+            background: rgba(255,204,0,0.03);
+            text-shadow: 0 0 8px rgba(255,204,0,0.3);
+            font-size: 12px;
+        }
+        .calc-btn.special:hover {
+            background: rgba(255,204,0,0.1);
+            border-color: rgba(255,204,0,0.6);
+            box-shadow: 0 0 20px rgba(255,204,0,0.15);
+        }
+
+        .calc-btn.clear {
+            color: var(--pink);
+            border-color: rgba(255,0,85,0.3);
+            background: rgba(255,0,85,0.05);
+            text-shadow: 0 0 8px rgba(255,0,85,0.3);
+        }
+        .calc-btn.clear:hover {
+            background: rgba(255,0,85,0.15);
+            border-color: rgba(255,0,85,0.6);
+            box-shadow: 0 0 20px rgba(255,0,85,0.2);
+        }
+
+        .calc-btn.equals {
+            color: var(--green);
+            border-color: rgba(57,255,20,0.4);
+            background: rgba(57,255,20,0.08);
+            text-shadow: 0 0 10px rgba(57,255,20,0.4);
+            font-size: 20px;
+        }
+        .calc-btn.equals:hover {
+            background: rgba(57,255,20,0.15);
+            border-color: rgba(57,255,20,0.7);
+            box-shadow: 0 0 25px rgba(57,255,20,0.2);
+        }
+
+        .calc-btn.wide {
+            grid-column: span 2;
+        }
+
+        .history-panel {
+            width: 100%;
+            margin-top: 6px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            clip-path: polygon(0% 0%, calc(100% - 10px) 0%, 100% 10px, 100% 100%, 10px 100%, 0% calc(100% - 10px));
+        }
+        .history-panel.open {
+            max-height: 300px;
+            padding: 14px 16px;
+        }
+        .history-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: #444;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-title .clear-hist {
+            cursor: pointer;
+            color: var(--pink);
+            font-size: 9px;
+            transition: color 0.2s;
+        }
+        .history-title .clear-hist:hover {
+            color: #ff3366;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .history-list::-webkit-scrollbar-track {
+            background: #111;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+        .hist-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 8px;
+            background: #0d0d0d;
+            border-left: 2px solid #333;
+            font-size: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .hist-item:hover {
+            background: #151515;
+            border-left-color: var(--cyan);
+        }
+        .hist-expr {
+            color: #666;
+            font-family: 'VT323', monospace;
+        }
+        .hist-result {
+            color: var(--cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+
+        .glitch-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(40px, 10vw, 90px);
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--pink);
+            pointer-events: none;
+            z-index: 10001;
+            letter-spacing: 8px;
+            text-shadow:
+                4px 0 var(--cyan),
+                -4px 0 var(--red),
+                0 0 50px var(--pink);
+            opacity: 0;
+            user-select: none;
+        }
+        .glitch-message.active {
+            opacity: 1;
+            animation: glitchText 0.15s infinite;
+        }
+        @keyframes glitchText {
+            0% { transform: translate(-50%, -50%) skew(0deg); }
+            10% { transform: translate(-48%, -52%) skew(3deg); text-shadow: -6px 0 cyan, 6px 0 red; }
+            20% { transform: translate(-52%, -48%) skew(-2deg); text-shadow: 2px -3px cyan, -2px 3px red; }
+            30% { transform: translate(-49%, -51%) skew(4deg); text-shadow: 5px 0 cyan, -5px 0 red; }
+            40% { transform: translate(-51%, -49%) skew(-1deg); text-shadow: 0 3px cyan, 0 -3px red; }
+            50% { transform: translate(-50%, -50%) skew(2deg); }
+            60% { transform: translate(-48%, -52%) skew(-3deg); text-shadow: 3px 0 cyan, -3px 0 red; }
+            70% { transform: translate(-52%, -48%) skew(1deg); text-shadow: -4px 2px cyan, 4px -2px red; }
+            80% { transform: translate(-50%, -50%) skew(-2deg); }
+            90% { transform: translate(-49%, -51%) skew(3deg); text-shadow: 2px -1px cyan, -2px 1px red; }
+            100% { transform: translate(-50%, -50%) skew(0deg); }
+        }
+
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10002;
+            font-family: 'VT323', monospace;
+            color: var(--pink);
+            animation: fall linear forwards;
+            text-shadow: 0 0 10px var(--pink);
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20px) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(540deg) scale(0.3); opacity: 0; }
+        }
+
+        .shake {
+            animation: brutalShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+        }
+        @keyframes brutalShake {
+            0%,100%{ transform: translate(0,0) rotate(0deg); }
+            10%{ transform: translate(-10px, 4px) rotate(-2deg); }
+            20%{ transform: translate(8px, -6px) rotate(2.5deg); }
+            30%{ transform: translate(-12px, -1px) rotate(-3deg); }
+            40%{ transform: translate(6px, 7px) rotate(1.5deg); }
+            50%{ transform: translate(-7px, -6px) rotate(-2deg); }
+            60%{ transform: translate(10px, 3px) rotate(3deg); }
+            70%{ transform: translate(-4px, 8px) rotate(-1deg); }
+            80%{ transform: translate(3px, -8px) rotate(0.5deg); }
+            90%{ transform: translate(-9px, -3px) rotate(-2.5deg); }
+        }
+
+        .input-error {
+            animation: inputShake 0.25s ease;
+        }
+        @keyframes inputShake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .toggle-hist {
+            position: absolute;
+            bottom: 8px;
+            right: 16px;
+            background: none;
+            border: 1px solid #333;
+            color: #555;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            padding: 3px 8px;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            z-index: 5;
+        }
+        .toggle-hist:hover {
+            color: var(--cyan);
+            border-color: var(--cyan);
+        }
+
+        .corner-glitch {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10003;
+            font-family: 'VT323', monospace;
+            color: var(--pink);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        .corner-glitch.active {
+            opacity: 0.6;
+            animation: cornerGlitch 0.3s steps(2) infinite;
+        }
+        @keyframes cornerGlitch {
+            0% { transform: translate(0,0); }
+            50% { transform: translate(3px, -2px); }
+            100% { transform: translate(-2px, 1px); }
+        }
+
+        .screen-rgb-split {
+            animation: rgbSplit 0.1s steps(3) 3;
+        }
+        @keyframes rgbSplit {
+            0% { filter: none; }
+            33% { filter: drop-shadow(-3px 0 red) drop-shadow(3px 0 cyan); }
+            66% { filter: drop-shadow(2px 0 blue) drop-shadow(-2px 0 magenta); }
+            100% { filter: none; }
+        }
+
+        .ambient-glitch {
+            animation: ambientGlitch 0.1s steps(2);
+        }
+        @keyframes ambientGlitch {
+            0% { transform: translate(0); }
+            50% { transform: translate(-3px, 2px); }
+            100% { transform: translate(0); }
+        }
+
+        .power-indicator {
+            position: fixed;
+            top: 12px;
+            right: 16px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 9px;
+            color: #444;
+            letter-spacing: 2px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .power-led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green), 0 0 20px rgba(57,255,20,0.3);
+            animation: ledPulse 2s infinite;
+        }
+        @keyframes ledPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @media (max-width: 480px) {
+            .btn-grid {
+                gap: 4px;
+                padding: 10px 14px 16px;
+            }
+            .calc-btn {
+                padding: 12px 4px;
+                font-size: 13px;
+            }
+            #equationInput {
+                font-size: 26px;
+            }
+            .screen-container {
+                padding: 12px 14px;
+            }
+            .brand {
+                padding: 14px 14px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="bootOverlay">
+        <div id="bootText"></div>
+    </div>
+
+    <canvas id="matrixCanvas"></canvas>
+    <canvas id="glitchCanvas"></canvas>
+
+    <div class="glitch-message" id="glitchMessage">ERROR</div>
+
+    <div class="power-indicator">
+        <div class="power-led"></div>
+        SYS.ON
+    </div>
+
+    <div class="corner-glitch" id="cornerTL" style="top:20px;left:20px;">▓▓▓</div>
+    <div class="corner-glitch" id="cornerBR" style="bottom:20px;right:20px;">███</div>
+
+    <div class="main-container" id="mainContainer" style="opacity:0;">
+        <div class="status-bar">
+            <div class="sys-info">
+                <span><span class="status-dot green"></span>MEM: 64K OK</span>
+                <span><span class="status-dot cyan"></span>CPU: NOMINAL</span>
+            </div>
+            <div class="sys-info">
+                <span id="clock">00:00:00</span>
+            </div>
+        </div>
+
+        <div class="glitch-box" id="calcBox">
+            <div class="brand">
+                <div class="brand-title">GLITCH <span>//</span> CALC</div>
+                <div class="version-tag">v2.0.7</div>
+            </div>
+
+            <div class="screen-container">
+                <div class="screen" id="screenEl">
+                    <div class="screen-expression" id="expressionDisplay"></div>
+                    <input type="text" id="equationInput" placeholder="ENTER EQUATION" autocomplete="off" spellcheck="false" inputmode="none" readonly>
+                    <span class="cursor" id="cursorEl"></span>
+                </div>
+            </div>
+
+            <div class="result-display">
+                <span id="resultText"></span>
+            </div>
+
+            <div class="btn-grid">
+                <button class="calc-btn clear wide" onclick="clearAll()">AC</button>
+                <button class="calc-btn special" onclick="inputBackspace()">⌫</button>
+                <button class="calc-btn special" onclick="inputChar('(')">(</button>
+                <button class="calc-btn special" onclick="inputChar(')')">)</button>
+
+                <button class="calc-btn special" onclick="inputFunc('Math.sin(')">sin</button>
+                <button class="calc-btn special" onclick="inputFunc('Math.cos(')">cos</button>
+                <button class="calc-btn special" onclick="inputFunc('Math.tan(')">tan</button>
+                <button class="calc-btn special" onclick="inputFunc('Math.sqrt(')">√</button>
+                <button class="calc-btn special" onclick="inputChar('**')">^</button>
+
+                <button class="calc-btn num" onclick="inputChar('7')">7</button>
+                <button class="calc-btn num" onclick="inputChar('8')">8</button>
+                <button class="calc-btn num" onclick="inputChar('9')">9</button>
+                <button class="calc-btn op" onclick="inputChar('/')">÷</button>
+                <button class="calc-btn op" onclick="inputChar('%')">%</button>
+
+                <button class="calc-btn num" onclick="inputChar('4')">4</button>
+                <button class="calc-btn num" onclick="inputChar('5')">5</button>
+                <button class="calc-btn num" onclick="inputChar('6')">6</button>
+                <button class="calc-btn op" onclick="inputChar('*')">×</button>
+                <button class="calc-btn special" onclick="inputConst('Math.PI')">π</button>
+
+                <button class="calc-btn num" onclick="inputChar('1')">1</button>
+                <button class="calc-btn num" onclick="inputChar('2')">2</button>
+                <button class="calc-btn num" onclick="inputChar('3')">3</button>
+                <button class="calc-btn op" onclick="inputChar('-')">−</button>
+                <button class="calc-btn special" onclick="inputConst('Math.E')">e</button>
+
+                <button class="calc-btn num wide" onclick="inputChar('0')">0</button>
+                <button class="calc-btn num" onclick="inputChar('.')">.</button>
+                <button class="calc-btn op" onclick="inputChar('+')">+</button>
+                <button class="calc-btn equals" onclick="calculate()">=</button>
+            </div>
+        </div>
+
+        <button class="toggle-hist" id="toggleHistBtn" onclick="toggleHistory()">[ HISTORY ]</button>
+
+        <div class="history-panel" id="historyPanel">
+            <div class="history-title">
+                <span>▸ CALCULATION LOG</span>
+                <span class="clear-hist" onclick="clearHistory()">[ PURGE ]</span>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('equationInput');
+        const calcBox = document.getElementById('calcBox');
+        const glitchMsg = document.getElementById('glitchMessage');
+        const glitchCanvas = document.getElementById('glitchCanvas');
+        const ctx = glitchCanvas.getContext('2d');
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const mctx = matrixCanvas.getContext('2d');
+        const screenEl = document.getElementById('screenEl');
+        const resultText = document.getElementById('resultText');
+        const expressionDisplay = document.getElementById('expressionDisplay');
+        const cursorEl = document.getElementById('cursorEl');
+        const historyPanel = document.getElementById('historyPanel');
+        const historyList = document.getElementById('historyList');
+        const body = document.body;
+        const mainContainer = document.getElementById('mainContainer');
+
+        let historyArr = [];
+        let audioCtx = null;
+        let isCalculating = false;
+        let clearTimer = null; // To store the auto-clear timeout
+
+        function resizeCanvases() {
+            glitchCanvas.width = window.innerWidth;
+            glitchCanvas.height = window.innerHeight;
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+        }
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+
+        const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?/~`アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        let columns = Math.floor(matrixCanvas.width / fontSize);
+        let drops = new Array(columns).fill(1);
+
+        function drawMatrix() {
+            mctx.fillStyle = 'rgba(5, 5, 8, 0.05)';
+            mctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            mctx.fillStyle = '#003300';
+            mctx.font = fontSize + 'px VT323';
+            for (let i = 0; i < drops.length; i++) {
+                const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                mctx.fillText(char, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            columns = Math.floor(matrixCanvas.width / fontSize);
+            drops = new Array(columns).fill(1);
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playGlitchSound() {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.15;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * 0.3;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            noise.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playClickSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playErrorSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        // Reset clear timer whenever the user interacts
+        function resetAutoClear() {
+            if (clearTimer) {
+                clearTimeout(clearTimer);
+                clearTimer = null;
+            }
+        }
+
+        function inputChar(ch) {
+            initAudio();
+            playClickSound();
+            resetAutoClear(); // Prevent auto-clear if user starts typing
+            const start = inputEl.selectionStart || inputEl.value.length;
+            const end = inputEl.selectionEnd || inputEl.value.length;
+            const val = inputEl.value;
+            inputEl.value = val.substring(0, start) + ch + val.substring(end);
+            const newPos = start + ch.length;
+            inputEl.setSelectionRange(newPos, newPos);
+        }
+
+        function inputFunc(fn) {
+            initAudio();
+            playClickSound();
+            resetAutoClear();
+            const start = inputEl.selectionStart || inputEl.value.length;
+            const end = inputEl.selectionEnd || inputEl.value.length;
+            const val = inputEl.value;
+            inputEl.value = val.substring(0, start) + fn + val.substring(end);
+            const newPos = start + fn.length;
+            inputEl.setSelectionRange(newPos, newPos);
+        }
+
+        function inputConst(c) {
+            initAudio();
+            playClickSound();
+            resetAutoClear();
+            const start = inputEl.selectionStart || inputEl.value.length;
+            const end = inputEl.selectionEnd || inputEl.value.length;
+            const val = inputEl.value;
+            inputEl.value = val.substring(0, start) + c + val.substring(end);
+            const newPos = start + c.length;
+            inputEl.setSelectionRange(newPos, newPos);
+        }
+
+        function inputBackspace() {
+            initAudio();
+            playClickSound();
+            resetAutoClear();
+            const start = inputEl.selectionStart || inputEl.value.length;
+            const end = inputEl.selectionEnd || inputEl.value.length;
+            if (start === end && start > 0) {
+                const val = inputEl.value;
+                const beforeCursor = val.substring(0, start);
+                const funcMatch = beforeCursor.match(/(Math\.\w+\()$/);
+                if (funcMatch) {
+                    const deleteLen = funcMatch[1].length;
+                    inputEl.value = val.substring(0, start - deleteLen) + val.substring(end);
+                    inputEl.setSelectionRange(start - deleteLen, start - deleteLen);
+                } else {
+                    inputEl.value = val.substring(0, start - 1) + val.substring(end);
+                    inputEl.setSelectionRange(start - 1, start - 1);
+                }
+            } else if (start !== end) {
+                const val = inputEl.value;
+                inputEl.value = val.substring(0, start) + val.substring(end);
+                inputEl.setSelectionRange(start, start);
+            }
+        }
+
+        function clearAll() {
+            initAudio();
+            playClickSound();
+            resetAutoClear();
+            inputEl.value = '';
+            resultText.textContent = '';
+            resultText.classList.remove('error');
+            expressionDisplay.textContent = '';
+        }
+
+        inputEl.addEventListener('keydown', (e) => {
+            initAudio();
+            resetAutoClear();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (inputEl.value.trim() === '') {
+                    shakeInput();
+                } else {
+                    calculate();
+                }
+            }
+            if (e.key === 'Escape') clearAll();
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                inputBackspace();
+            }
+        });
+
+        function calculate() {
+            initAudio();
+            resetAutoClear(); // Ensure we don't trigger previous timers
+            
+            const inputValue = inputEl.value.trim();
+            if (inputValue === '') {
+                shakeInput();
+                return;
+            }
+            if (isCalculating) return;
+            isCalculating = true;
+
+            expressionDisplay.textContent = inputValue;
+
+            let result;
+            try {
+                const evalStr = inputValue.replace(/\^/g, '**');
+                result = Function('"use strict"; return (' + evalStr + ')')();
+
+                if (typeof result !== 'number' || !isFinite(result)) {
+                    throw new Error(result === Infinity ? 'OVERFLOW' : result === -Infinity ? 'UNDERFLOW' : 'NaN');
+                }
+            } catch (err) {
+                showErrorGlitch(err.message || 'SYNTAX');
+                return;
+            }
+
+            const displayResult = Number.isInteger(result) ? result : parseFloat(result.toFixed(8));
+            resultText.textContent = '= ' + displayResult;
+            resultText.classList.remove('error');
+
+            addHistory(inputValue, displayResult);
+            triggerGlitch(displayResult);
+
+            setTimeout(() => {
+                isCalculating = false;
+            }, 500);
+        }
+
+        function showErrorGlitch(msg) {
+            initAudio();
+            playErrorSound();
+            resetAutoClear();
+
+            resultText.textContent = 'ERR: ' + (msg || 'SYNTAX');
+            resultText.classList.add('error');
+
+            calcBox.classList.add('shake');
+            setTimeout(() => calcBox.classList.remove('shake'), 400);
+
+            screenEl.classList.add('screen-rgb-split');
+            setTimeout(() => screenEl.classList.remove('screen-rgb-split'), 300);
+
+            const messages = ['SYNTAX_ERR', 'FATAL_ERR', 'NaN_FOUND', 'STACK_OVF', 'CORRUPT'];
+            glitchMsg.textContent = messages[Math.floor(Math.random() * messages.length)];
+            glitchMsg.classList.add('active');
+            playGlitchSound();
+            drawGlitchSlices();
+            spawnParticles(20);
+
+            // Error auto-clear after 2s
+            clearTimer = setTimeout(() => {
+                glitchMsg.classList.remove('active');
+                resultText.textContent = '';
+                resultText.classList.remove('error');
+                expressionDisplay.textContent = '';
+                ctx.clearRect(0, 0, glitchCanvas.width, glitchCanvas.height);
+            }, 2000);
+        }
+
+        function triggerGlitch(resultValue) {
+            playGlitchSound();
+
+            screenEl.classList.add('screen-rgb-split');
+            setTimeout(() => screenEl.classList.remove('screen-rgb-split'), 300);
+
+            calcBox.classList.add('shake');
+            setTimeout(() => calcBox.classList.remove('shake'), 400);
+
+            body.classList.add('bg-flash');
+            setTimeout(() => body.classList.remove('bg-flash'), 150);
+
+            const messages = ['COMPUTED', 'EXECUTED', 'PROCESSED', 'ANALYZED', 'RESOLVED', 'CRUNCHING'];
+            glitchMsg.textContent = messages[Math.floor(Math.random() * messages.length)];
+            glitchMsg.classList.add('active');
+
+            drawGlitchSlices();
+            spawnParticles(25);
+
+            document.getElementById('cornerTL').classList.add('active');
+            document.getElementById('cornerBR').classList.add('active');
+
+            // Set auto-clear timer for 3 seconds
+            clearTimer = setTimeout(() => {
+                // Reset UI state
+                inputEl.value = '';
+                resultText.textContent = '';
+                expressionDisplay.textContent = '';
+                resultText.classList.remove('error');
+                
+                // Stop glitch effects
+                glitchMsg.classList.remove('active');
+                document.getElementById('cornerTL').classList.remove('active');
+                document.getElementById('cornerBR').classList.remove('active');
+                ctx.clearRect(0, 0, glitchCanvas.width, glitchCanvas.height);
+                document.querySelectorAll('.particle').forEach(p => p.remove());
+                
+                calcBox.classList.remove('shake');
+                screenEl.classList.remove('screen-rgb-split');
+                
+                isCalculating = false;
+            }, 3000); // 3000ms = 3 seconds
+        }
+
+        function shakeInput() {
+            inputEl.classList.add('input-error');
+            setTimeout(() => inputEl.classList.remove('input-error'), 250);
+            playErrorSound();
+        }
+
+        function spawnParticles(count) {
+            document.querySelectorAll('.particle').forEach(p => p.remove());
+            const chars = ['█','▓','▒','░','■','□','▪','▫','◆','◇','○','●','×','+','=','/','\\','|','!','@','#','$','%','&','{','}','<','>','~','`','^'];
+            const colors = ['#ff0055', '#00ffff', '#39ff14', '#ffcc00', '#bf00ff'];
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('span');
+                    particle.className = 'particle';
+                    particle.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = -(Math.random() * 20) + 'px';
+                    particle.style.animationDuration = (Math.random() * 2.5 + 1) + 's';
+                    particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
+                    particle.style.color = colors[Math.floor(Math.random() * colors.length)];
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 4500);
+                }, i * 20);
+            }
+        }
+
+        function drawGlitchSlices() {
+            ctx.clearRect(0, 0, glitchCanvas.width, glitchCanvas.height);
+            const sliceCount = 12;
+            const w = glitchCanvas.width;
+            const h = glitchCanvas.height;
+            for (let i = 0; i < sliceCount; i++) {
+                const y = Math.random() * h;
+                const height = Math.random() * 25 + 5;
+                const shiftX = (Math.random() - 0.5) * 80;
+                const alpha = Math.random() * 0.5 + 0.2;
+                const r = Math.random() > 0.5 ? 255 : 0;
+                const g = Math.random() > 0.5 ? 255 : 0;
+                const b = Math.random() > 0.5 ? 255 : 0;
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                ctx.fillRect(shiftX, y, w, height);
+
+                if (Math.random() > 0.5) {
+                    ctx.fillStyle = `rgba(255, 0, 85, ${Math.random() * 0.3})`;
+                    ctx.font = `${Math.random() * 14 + 10}px "VT323"`;
+                    const glitchTexts = ['ERROR', '0xFF', 'NULL', 'VOID', 'CORRUPT', 'SEGFAULT'];
+                    ctx.fillText(glitchTexts[Math.floor(Math.random() * glitchTexts.length)], shiftX + Math.random() * 200, y + height / 1.5);
+                }
+            }
+        }
+
+        setInterval(() => {
+            if (glitchMsg.classList.contains('active')) {
+                drawGlitchSlices();
+            }
+        }, 350);
+
+        setInterval(() => {
+            if (Math.random() > 0.92 && !glitchMsg.classList.contains('active')) {
+                calcBox.classList.add('ambient-glitch');
+                setTimeout(() => calcBox.classList.remove('ambient-glitch'), 100);
+            }
+        }, 2000);
+
+        function addHistory(expr, result) {
+            historyArr.unshift({ expr, result, time: new Date() });
+            if (historyArr.length > 20) historyArr.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = '';
+            historyArr.forEach((item, idx) => {
+                const el = document.createElement('div');
+                el.className = 'hist-item';
+                el.innerHTML = `
+                    <span class="hist-expr">${item.expr}</span>
+                    <span class="hist-result">${item.result}</span>
+                `;
+                el.addEventListener('click', () => {
+                    inputEl.value = item.expr;
+                });
+                historyList.appendChild(el);
+            });
+        }
+
+        function toggleHistory() {
+            historyPanel.classList.toggle('open');
+            const btn = document.getElementById('toggleHistBtn');
+            btn.textContent = historyPanel.classList.contains('open') ? '[ CLOSE LOG ]' : '[ HISTORY ]';
+        }
+
+        function clearHistory() {
+            historyArr = [];
+            renderHistory();
+        }
+
+        async function bootSequence() {
+            const bootOverlay = document.getElementById('bootOverlay');
+            const bootText = document.getElementById('bootText');
+            const lines = [
+                { text: 'GLITCH OS v4.2.1 - BOOT SEQUENCE INITIATED', cls: '' },
+                { text: '', cls: '' },
+                { text: '[ OK ] Memory check...........64K OK', cls: 'ok' },
+                { text: '[ OK ] CPU initialized........80386DX @ 33MHz', cls: 'ok' },
+                { text: '[ OK ] Graphics adapter.......VGA 256-color', cls: 'ok' },
+                { text: '[WARN] Glitch module..........unstable', cls: 'warn' },
+                { text: '[ OK ] Audio subsystem........PCM 16-bit', cls: 'ok' },
+                { text: '[ OK ] Input handler..........attached', cls: 'ok' },
+                { text: '[ OK ] Math coprocessor.......loaded', cls: 'ok' },
+                { text: '', cls: '' },
+                { text: 'Loading GLITCH CALCULATOR...', cls: '' },
+                { text: '[ OK ] Core engine............initialized', cls: 'ok' },
+                { text: '[ OK ] Particle system........active', cls: 'ok' },
+                { text: '[ OK ] Glitch renderer........ready', cls: 'ok' },
+                { text: '', cls: '' },
+                { text: '████████████████████████████ 100%', cls: 'ok' },
+                { text: '', cls: '' },
+                { text: '> SYSTEM READY', cls: 'ok' },
+                { text: '> AWAITING INPUT...', cls: 'warn' },
+            ];
+
+            for (let i = 0; i < lines.length; i++) {
+                await typeLine(bootText, lines[i].text, lines[i].cls);
+                await sleep(40 + Math.random() * 80);
+            }
+
+            await sleep(500);
+            bootOverlay.classList.add('hidden');
+            setTimeout(() => {
+                bootOverlay.style.display = 'none';
+                mainContainer.style.transition = 'opacity 0.5s';
+                mainContainer.style.opacity = '1';
+            }, 500);
+        }
+
+        function typeLine(container, text, cls) {
+            return new Promise(resolve => {
+                const line = document.createElement('div');
+                line.className = cls;
+                container.appendChild(line);
+                if (text === '') {
+                    resolve();
+                    return;
+                }
+                let i = 0;
+                const interval = setInterval(() => {
+                    line.textContent += text[i];
+                    i++;
+                    if (i >= text.length) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 15 + Math.random() * 25);
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        bootSequence();
+    </script>
+</body>
+</html>
 
